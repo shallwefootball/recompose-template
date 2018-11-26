@@ -1,32 +1,33 @@
-import { Observable, Scheduler } from "rxjs";
+import { animationFrameScheduler, defer, of, interval } from "rxjs";
+import { map, takeWhile, concat } from "rxjs/operators";
 
-const schedular = Scheduler.animationFrame;
+const schedular = animationFrameScheduler;
 
-export const msElapsedFn$ = (_schedular = Scheduler.animationFrame) =>
-  Observable.defer(() => {
+export const msElapsedFn$ = (_schedular = animationFrameScheduler) =>
+  defer(() => {
     const start = _schedular.now();
-    return Observable.interval(0, _schedular).map(
-      () => _schedular.now() - start
-    );
+    return interval(0, _schedular).pipe(map(() => _schedular.now() - start));
   });
 
 export const durationTime$ = ms =>
   msElapsedFn$(schedular)
     .takeWhile(t => t <= ms)
-    .concat(Observable.of(ms));
+    .concat(of(ms));
 
 export const duration$ = ms =>
-  msElapsedFn$(schedular)
-    .map(ems => ems / ms)
-    .takeWhile(t => t <= 1)
-    .concat(Observable.of(1));
+  msElapsedFn$(schedular).pipe(
+    map(ems => ems / ms),
+    takeWhile(t => t <= 1),
+    concat(of(1))
+  );
 
 export const goal = d => t => d * t;
 
 export const animation$ = ({ ms, tv, easing }) =>
-  duration$(ms)
-    .map(easing)
-    .map(goal(tv));
+  duration$(ms).pipe(
+    map(easing),
+    map(goal(tv))
+  );
 
 // require('eases/back-in-out')
 // require('eases/back-in')
